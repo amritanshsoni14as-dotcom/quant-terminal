@@ -1,0 +1,62 @@
+{
+  "symbol": "CRUDE",
+  "name": "Crude Oil (WTI)",
+  "category": "energy",
+  "unit": "USD/bbl",
+  "currency": "USD",
+  "contract": { "exchange": "NYMEX", "ticker": "CL=F", "futures_root": "CL" },
+  "regions": {
+    "producing": [
+      { "name": "USA", "share": 0.20, "lat": 31.9, "lon": -102.0 },
+      { "name": "Saudi Arabia", "share": 0.11, "lat": 25.0, "lon": 47.0 },
+      { "name": "Russia", "share": 0.11, "lat": 61.0, "lon": 75.0 }
+    ],
+    "consuming": [ { "name": "USA", "share": 0.20 }, { "name": "China", "share": 0.16 } ]
+  },
+  "seasonality": { "demand_peak_months": [6, 7, 8], "refinery_maintenance_months": [2, 3, 9, 10] },
+  "indicators": [
+    { "key": "price", "category": "price", "source": { "yahoo": { "ticker": "CL=F" } }, "transform": "raw" },
+    { "key": "eia_crude_stocks", "label": "EIA Crude Inventories", "category": "inventory",
+      "source": { "eia": { "series_id": "PET.WCESTUS1.W" } }, "transform": "yoy",
+      "direction": -1, "weight": 0.5, "frequency": "weekly" },
+    { "key": "cushing_stocks", "label": "Cushing Stocks", "category": "inventory",
+      "source": { "eia": { "series_id": "PET.W_EPC0_SAX_YCUOK_MBBL.W" } }, "transform": "percentile",
+      "direction": -1, "weight": 0.3, "frequency": "weekly" },
+    { "key": "spr", "label": "Strategic Petroleum Reserve", "category": "inventory",
+      "source": { "eia": { "series_id": "PET.WCSSTUS1.W" } }, "transform": "yoy",
+      "direction": -1, "weight": 0.2, "frequency": "weekly" },
+    { "key": "us_production", "label": "US Crude Production", "category": "supply",
+      "source": { "eia": { "series_id": "PET.WCRFPUS2.W" } }, "transform": "yoy",
+      "direction": -1, "weight": 0.5, "frequency": "weekly" },
+    { "key": "rig_count", "label": "Baker Hughes Rig Count", "category": "supply",
+      "source": { "csv": { "feed": "rig_count" } }, "transform": "yoy",
+      "direction": -1, "weight": 0.5, "frequency": "weekly" },
+    { "key": "refinery_runs", "label": "Refinery Utilization", "category": "demand",
+      "source": { "eia": { "series_id": "PET.WPULEUS3.W" } }, "transform": "zscore",
+      "direction": 1, "weight": 0.5, "frequency": "weekly" },
+    { "key": "products_supplied", "label": "Products Supplied (demand proxy)", "category": "demand",
+      "source": { "eia": { "series_id": "PET.WRPUPUS2.W" } }, "transform": "yoy",
+      "direction": 1, "weight": 0.5, "frequency": "weekly" },
+    { "key": "hurricane_risk", "label": "Gulf hurricane risk", "category": "weather",
+      "source": { "weather": { "var": "cyclone_risk" } }, "geography": "producing",
+      "transform": "raw", "direction": 1, "weight": 1.0, "frequency": "daily" },
+    { "key": "usd_index", "label": "US Dollar Index", "category": "macro",
+      "source": { "fred": { "series": "DTWEXBGS" } }, "transform": "zscore", "direction": -1, "weight": 0.6 },
+    { "key": "real_yields", "label": "10y Real Yield", "category": "macro",
+      "source": { "fred": { "series": "DFII10" } }, "transform": "zscore", "direction": -1, "weight": 0.4 },
+    { "key": "cot_net_spec", "label": "COT net speculative", "category": "positioning",
+      "source": { "cftc": { "market": "CRUDE OIL, LIGHT SWEET" } }, "transform": "percentile",
+      "direction": 1, "weight": 1.0, "frequency": "weekly" }
+  ],
+  "category_weights": { "supply": 0.22, "demand": 0.22, "inventory": 0.26, "weather": 0.06, "macro": 0.16, "positioning": 0.08 },
+  "forecast": { "horizons": ["5d", "21d", "63d"], "models": ["xgboost", "lightgbm", "prophet", "ensemble"] },
+  "twin": { "elasticities": { "production": -0.5, "inventory": -0.7, "refinery_runs": 0.3, "opec_cut": 0.8 } },
+  "alerts": [
+    { "indicator": "eia_crude_stocks", "rule": "abs_z>2", "severity": "high" },
+    { "indicator": "cushing_stocks", "rule": "<0.15", "severity": "high" },
+    { "indicator": "cot_net_spec", "rule": "percentile>0.9", "severity": "medium" }
+  ],
+  "ui_sections": ["overview", "supply", "demand", "inventory", "macro", "tradeflow",
+                  "futures", "positioning", "news", "forecast", "seasonality", "correlations",
+                  "alerts", "twin", "copilot", "scorecard"]
+}

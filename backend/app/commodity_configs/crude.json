@@ -1,0 +1,24 @@
+{
+  "symbol": "CRUDE",
+  "name": "Crude Oil (WTI)",
+  "category": "energy",
+  "unit": "USD/bbl",
+  "currency": "USD",
+  "price_ticker": "CL=F",
+  "substitutes": ["NATGAS"],
+  "indicators": [
+    { "key": "trend", "label": "Price trend (SMA structure)", "category": "technical", "source": { "derived": "trend" }, "direction": 1, "weight": 0.6 },
+    { "key": "momentum", "label": "21-day momentum", "category": "technical", "source": { "derived": "momentum" }, "direction": 1, "weight": 0.4 },
+    { "key": "valuation", "label": "Price percentile (5y, Rogers cheap/expensive)", "category": "valuation", "source": { "derived": "price_percentile" }, "transform": "percentile", "direction": -1, "weight": 1.0 },
+    { "key": "usd", "label": "US Dollar Index", "category": "macro", "source": { "macro_asset": "DXY" }, "transform": "zscore", "direction": -1, "weight": 0.6 },
+    { "key": "rates", "label": "US 10Y Treasury yield", "category": "macro", "source": { "macro_asset": "US10Y" }, "transform": "zscore", "direction": -1, "weight": 0.4 },
+    { "key": "cot_net_spec", "label": "COT managed-money net (positioning)", "category": "positioning", "source": { "cftc": { "code": "067651" } }, "transform": "percentile", "direction": 1, "weight": 1.0, "frequency": "weekly" },
+
+    { "key": "eia_crude_stocks", "label": "EIA crude inventories", "category": "inventory", "source": { "eia": { "series_id": "PET.WCESTUS1.W" } }, "transform": "yoy", "direction": -1, "weight": 1.0, "frequency": "weekly" },
+    { "key": "us_production", "label": "US crude production", "category": "supply", "source": { "eia": { "series_id": "PET.WCRFPUS2.W" } }, "transform": "yoy", "direction": -1, "weight": 1.0, "frequency": "weekly" },
+    { "key": "refinery_runs", "label": "Refinery utilization (demand)", "category": "demand", "source": { "eia": { "series_id": "PET.WPULEUS3.W" } }, "transform": "zscore", "direction": 1, "weight": 1.0, "frequency": "weekly" }
+  ],
+  "category_weights": { "technical": 0.20, "valuation": 0.15, "macro": 0.20, "positioning": 0.15, "inventory": 0.12, "supply": 0.09, "demand": 0.09 },
+  "secular": { "supply_lead_time_months": 36 },
+  "pending_phase2": ["EIA supply/demand/inventory activate once EIA_API_KEY is set (free)"]
+}

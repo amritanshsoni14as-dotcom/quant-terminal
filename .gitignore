@@ -1,0 +1,33 @@
+# Python
+backend/.venv/
+**/__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Local database (cloud uses Postgres; data is re-ingested from free APIs)
+*.db
+*.db-wal
+*.db-shm
+backend/rainmumbai.db
+
+# Node / Next
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+.vercel/
+
+# Secrets & env
+.env
+.env.*
+!.env.example
+backend/.env
+frontend/.env.local
+
+# Local tunnel/runtime binaries & logs (not for cloud)
+tools/*.exe
+tools/*.zip
+logs/
+
+# OS
+Thumbs.db
+.DS_Store

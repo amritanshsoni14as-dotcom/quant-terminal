@@ -1,0 +1,54 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Dark theme (default). RGB triplets so Tailwind alpha modifiers work. */
+:root,
+.dark {
+  color-scheme: dark;
+  --term-bg: 10 14 20;
+  --term-panel: 15 22 32;
+  --term-card: 19 28 40;
+  --term-border: 30 42 58;
+  --term-muted: 92 111 134;
+  --term-text: 197 212 227;
+  --term-accent: 56 189 248;
+  --term-rain: 59 130 246;
+  --term-pos: 34 197 94;
+  --term-neg: 239 68 68;
+  --term-warn: 245 158 11;
+}
+
+/* Light theme */
+.light {
+  color-scheme: light;
+  --term-bg: 244 246 249;
+  --term-panel: 255 255 255;
+  --term-card: 255 255 255;
+  --term-border: 214 222 232;
+  --term-muted: 100 116 139;
+  --term-text: 15 23 42;
+  --term-accent: 2 132 199;
+  --term-rain: 37 99 235;
+  --term-pos: 22 163 74;
+  --term-neg: 220 38 38;
+  --term-warn: 217 119 8;
+}
+
+html,
+body {
+  background-color: rgb(var(--term-bg));
+  color: rgb(var(--term-text));
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: rgb(var(--term-border));
+  border-radius: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}

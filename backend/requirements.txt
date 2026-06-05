@@ -1,0 +1,32 @@
+# ---- API ----
+fastapi
+uvicorn[standard]
+pydantic
+pydantic-settings
+python-dotenv
+
+# ---- DB ----
+sqlalchemy
+psycopg[binary]
+alembic
+
+# ---- Data / HTTP ----
+httpx
+pandas
+numpy
+requests
+
+# ---- Analytics / ML (Phase 3) ----
+scikit-learn
+xgboost
+lightgbm
+prophet
+statsmodels
+scipy
+
+# ---- Deep learning (Phase 4 — LSTM/Transformer) ----
+torch
+
+# ---- Scheduling & AI ----
+apscheduler
+anthropic

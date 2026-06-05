@@ -1,0 +1,31 @@
+# Slim dependency set for cloud (Render free tier).
+# Excludes torch (LSTM/Transformer) and prophet — too heavy for 512MB free RAM.
+# The code imports those lazily and skips them gracefully, so the cloud ML lab
+# runs the 4 lighter models (LinearReg, RandomForest, XGBoost, LightGBM).
+# AI (Copilot/Alt-Data) uses Groq via plain HTTP — no SDK needed.
+
+# API
+fastapi
+uvicorn[standard]
+pydantic
+pydantic-settings
+python-dotenv
+
+# DB (Postgres in cloud)
+sqlalchemy
+psycopg[binary]
+
+# Data / HTTP
+httpx
+requests
+pandas
+numpy
+
+# ML (light)
+scikit-learn
+xgboost
+lightgbm
+scipy
+
+# Scheduling
+apscheduler
