@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import DailyBrief from "@/components/DailyBrief";
 import ModuleHeader from "@/components/ModuleHeader";
+import SignalJournal from "@/components/SignalJournal";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +16,11 @@ const TONE: Record<string, { text: string; bg: string }> = {
 };
 
 export default async function SignalPage() {
-  const [signal, brief] = await Promise.all([api.signal(), api.brief()]);
+  const [signal, brief, history] = await Promise.all([
+    api.signal(),
+    api.brief(),
+    api.signalHistory(100),
+  ]);
 
   if (!signal?.available) {
     return (
@@ -115,6 +120,9 @@ export default async function SignalPage() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Signal track record — append-only journal */}
+        <SignalJournal entries={history?.entries ?? []} />
       </div>
     </div>
   );

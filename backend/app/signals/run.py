@@ -20,6 +20,7 @@ from app.models.orm import (
     FeaturesDaily,
     ProbabilitySnapshot,
     RawWeatherForecast,
+    SignalLog,
     TradingSignal,
 )
 from app.signals import engine, fairvalue, probability, revision
@@ -134,6 +135,25 @@ def run() -> dict:
             "symbol": SYMBOL, "as_of": prob["as_of"], "signal": sig["signal"],
             "score": sig["score"], "confidence": sig["confidence"], "components": sig["components"],
         }], ["symbol", "as_of"])
+
+        # Signal journal — append only when the call changes (or first ever).
+        last_log = db.execute(
+            select(SignalLog).where(SignalLog.symbol == SYMBOL)
+            .order_by(SignalLog.logged_at.desc()).limit(1)
+        ).scalar_one_or_none()
+        if last_log is None or last_log.signal != sig["signal"]:
+            db.add(SignalLog(
+                symbol=SYMBOL,
+                as_of=prob["as_of"],
+                signal=sig["signal"],
+                score=round(sig["score"], 3) if sig.get("score") is not None else None,
+                confidence=round(sig["confidence"], 3) if sig.get("confidence") is not None else None,
+                prev_signal=last_log.signal if last_log else None,
+                event_type="first" if last_log is None else "change",
+            ))
+            db.commit()
+            print(f"[signal-log] {prob['as_of']} {sig['signal']} "
+                  f"(was {last_log.signal if last_log else 'n/a'})")
 
         # Daily Brief (final output)
         forecast = {"seasonal": prob["expected_season_mm"], **_near_term_forecast(db, location_id)}

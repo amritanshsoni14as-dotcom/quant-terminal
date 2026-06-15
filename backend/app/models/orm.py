@@ -195,6 +195,23 @@ class TradingSignal(Base):
     components: Mapped[dict | None] = mapped_column(JSON)
 
 
+class SignalLog(Base):
+    """Append-only journal of the model's signal calls — one row per meaningful change
+    (state transition or first entry). Powers the dashboard's signal track record."""
+    __tablename__ = "signal_log"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    symbol: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    logged_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), index=True)
+    as_of: Mapped[date] = mapped_column(Date, nullable=False)
+    signal: Mapped[str] = mapped_column(String, nullable=False)
+    score: Mapped[float | None] = mapped_column(Float)
+    confidence: Mapped[float | None] = mapped_column(Float)
+    prev_signal: Mapped[str | None] = mapped_column(String)
+    event_type: Mapped[str] = mapped_column(String, default="change")  # 'first' | 'change'
+    note: Mapped[str | None] = mapped_column(String)
+
+
 # ---------------------------------------------------------------------------
 # Phase 3 — ML Lab (Module 6) + Forecast Revision Engine (Module 7)
 # ---------------------------------------------------------------------------

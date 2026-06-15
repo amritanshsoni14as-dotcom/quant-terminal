@@ -20,5 +20,6 @@ from app.models.orm import (  # noqa: F401
     RawWeather,
     RawWeatherForecast,
     RevisionPrediction,
+    SignalLog,
     TradingSignal,
 )

@@ -1,12 +1,12 @@
 """Module 9 — Trading Signal API + Final Daily Brief."""
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.db import get_db
-from app.models.orm import DailyBrief, TradingSignal
+from app.models.orm import DailyBrief, SignalLog, TradingSignal
 
 router = APIRouter(tags=["Module 9 — Trading Signal / Brief"])
 SYMBOL = "RAINMUMBAI"
@@ -23,6 +23,28 @@ def signal(db: Session = Depends(get_db)):
     return {
         "available": True, "as_of": s.as_of.isoformat(), "signal": s.signal,
         "score": s.score, "confidence": s.confidence, "components": s.components,
+    }
+
+
+@router.get("/signal/history")
+def signal_history(limit: int = Query(100, ge=1, le=500), db: Session = Depends(get_db)):
+    """Append-only journal of every signal change the model has made."""
+    rows = db.execute(
+        select(SignalLog).where(SignalLog.symbol == SYMBOL)
+        .order_by(SignalLog.logged_at.desc()).limit(limit)
+    ).scalars().all()
+    return {
+        "available": True,
+        "count": len(rows),
+        "entries": [{
+            "logged_at": r.logged_at.isoformat() if r.logged_at else None,
+            "as_of": r.as_of.isoformat(),
+            "signal": r.signal,
+            "prev_signal": r.prev_signal,
+            "score": r.score,
+            "confidence": r.confidence,
+            "event_type": r.event_type,
+        } for r in rows],
     }
 
 

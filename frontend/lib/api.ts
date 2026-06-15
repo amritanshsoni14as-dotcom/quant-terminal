@@ -80,6 +80,21 @@ export interface Signal {
   components?: SignalComponent[];
 }
 
+export interface SignalLogEntry {
+  logged_at: string;
+  as_of: string;
+  signal: string;
+  prev_signal: string | null;
+  score: number | null;
+  confidence: number | null;
+  event_type: "first" | "change";
+}
+export interface SignalHistory {
+  available: boolean;
+  count: number;
+  entries: SignalLogEntry[];
+}
+
 export interface Factor { label: string; detail: string; contribution: number; }
 export interface Brief {
   available: boolean;
@@ -272,6 +287,7 @@ export const api = {
   fairValue: () => get<FairValue>("/derivative/fair-value"),
   spec: () => get<ContractSpec>("/derivative/spec"),
   signal: () => get<Signal>("/signal"),
+  signalHistory: (limit = 100) => get<SignalHistory>(`/signal/history?limit=${limit}`),
   brief: () => get<Brief>("/brief"),
   // Phase 3
   leaderboard: () => get<Leaderboard>("/ml/leaderboard"),
