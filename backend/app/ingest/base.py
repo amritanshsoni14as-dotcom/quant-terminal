@@ -74,8 +74,9 @@ def upsert(db: Session, model: type, rows: Iterable[dict], index_elements: list[
     update_cols = [c for c in sample_cols if c not in index_elements]
     ncols = max(len(sample_cols), 1)
 
-    # SQLite caps bound variables (~32k). Batch so batch_size * ncols stays well under.
-    batch_size = max(1, 20000 // ncols) if dialect == "sqlite" else 5000
+    # Postgres caps at 65535 bound params; SQLite at ~32k. Stay well under both.
+    max_params = 20000 if dialect == "sqlite" else 60000
+    batch_size = max(1, max_params // ncols)
 
     for start in range(0, len(rows), batch_size):
         batch = rows[start : start + batch_size]
