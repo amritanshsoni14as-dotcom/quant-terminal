@@ -1,0 +1,19 @@
+{
+  "symbol": "NATGAS",
+  "name": "Natural Gas",
+  "category": "energy",
+  "unit": "USD/MMBtu",
+  "currency": "USD",
+  "price_ticker": "NG=F",
+  "substitutes": ["CRUDE"],
+  "indicators": [
+    { "key": "trend", "label": "Price trend (SMA structure)", "category": "technical", "source": { "derived": "trend" }, "direction": 1, "weight": 0.6 },
+    { "key": "momentum", "label": "21-day momentum", "category": "technical", "source": { "derived": "momentum" }, "direction": 1, "weight": 0.4 },
+    { "key": "valuation", "label": "Price percentile (5y, Rogers cheap/expensive)", "category": "valuation", "source": { "derived": "price_percentile" }, "transform": "percentile", "direction": -1, "weight": 1.0 },
+    { "key": "usd", "label": "US Dollar Index", "category": "macro", "source": { "macro_asset": "DXY" }, "transform": "zscore", "direction": -1, "weight": 1.0 },
+    { "key": "cot_net_spec", "label": "COT managed-money net (positioning)", "category": "positioning", "source": { "cftc": { "code": "023651" } }, "transform": "percentile", "direction": 1, "weight": 1.0, "frequency": "weekly" }
+  ],
+  "category_weights": { "technical": 0.40, "valuation": 0.22, "macro": 0.18, "positioning": 0.20 },
+  "secular": { "supply_lead_time_months": 18 },
+  "pending_phase2": ["inventory: EIA natural-gas storage", "demand: heating/cooling degree days, LNG exports", "supply: dry-gas production, rig count"]
+}

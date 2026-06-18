@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api import (
+    admin,
     ai,
     commodities,
     derivative,
@@ -48,6 +49,7 @@ def create_app() -> FastAPI:
     app.include_router(commodities.router, prefix=api_v1)
     app.include_router(intel.router, prefix=api_v1)
     app.include_router(ai.router, prefix=api_v1)
+    app.include_router(admin.router, prefix=api_v1)
 
     @app.on_event("startup")
     def _startup() -> None:

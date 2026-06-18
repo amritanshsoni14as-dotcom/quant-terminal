@@ -26,14 +26,27 @@ def run(full: bool = True) -> None:
             start = date(today.year - settings.BACKFILL_YEARS, 1, 1)
         else:
             start = today - timedelta(days=45)
-        # Open-Meteo archive lags a few days; cap the end conservatively.
         end = today - timedelta(days=2)
 
-        print(f"[backfill] weather {start} -> {end}")
-        n = open_meteo.fetch_history(db, location_id, start, end)
-        print(f"[backfill]   open-meteo rows: {n}")
-        n = nasa_power.fetch_history(db, location_id, start, end)
-        print(f"[backfill]   nasa-power rows: {n}")
+        # Chunk by 2-year windows to keep memory under 512 MB (Render free tier).
+        import gc
+        chunk_start = start
+        total_om, total_np = 0, 0
+        while chunk_start < end:
+            chunk_end = min(chunk_start.replace(year=chunk_start.year + 2) - timedelta(days=1), end)
+            print(f"[backfill] weather chunk {chunk_start} -> {chunk_end}")
+            try:
+                total_om += open_meteo.fetch_history(db, location_id, chunk_start, chunk_end)
+            except Exception as exc:
+                print(f"[backfill]   open-meteo chunk failed: {exc}")
+            try:
+                total_np += nasa_power.fetch_history(db, location_id, chunk_start, chunk_end)
+            except Exception as exc:
+                print(f"[backfill]   nasa-power chunk failed: {exc}")
+            gc.collect()
+            chunk_start = chunk_end + timedelta(days=1)
+        print(f"[backfill]   open-meteo total rows: {total_om}")
+        print(f"[backfill]   nasa-power total rows: {total_np}")
 
         # Near-real-time recent days (incl. today) to close the archive lag.
         try:

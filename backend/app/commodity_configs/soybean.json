@@ -1,0 +1,19 @@
+{
+  "symbol": "SOYBEAN",
+  "name": "Soybeans (CBOT)",
+  "category": "agriculture",
+  "unit": "USc/bu",
+  "currency": "USD",
+  "price_ticker": "ZS=F",
+  "substitutes": ["CORN"],
+  "indicators": [
+    { "key": "trend", "label": "Price trend (SMA structure)", "category": "technical", "source": { "derived": "trend" }, "direction": 1, "weight": 0.6 },
+    { "key": "momentum", "label": "21-day momentum", "category": "technical", "source": { "derived": "momentum" }, "direction": 1, "weight": 0.4 },
+    { "key": "valuation", "label": "Price percentile (5y, Rogers cheap/expensive)", "category": "valuation", "source": { "derived": "price_percentile" }, "transform": "percentile", "direction": -1, "weight": 1.0 },
+    { "key": "usd", "label": "US Dollar Index", "category": "macro", "source": { "macro_asset": "DXY" }, "transform": "zscore", "direction": -1, "weight": 1.0 },
+    { "key": "cot_net_spec", "label": "COT managed-money net (positioning)", "category": "positioning", "source": { "cftc": { "code": "005602" } }, "transform": "percentile", "direction": 1, "weight": 1.0, "frequency": "weekly" }
+  ],
+  "category_weights": { "technical": 0.38, "valuation": 0.22, "macro": 0.20, "positioning": 0.20 },
+  "secular": { "supply_lead_time_months": 12 },
+  "pending_phase2": ["weather: rainfall over US/Brazil/Argentina", "supply: USDA acreage/condition/stocks", "demand: China imports (Comtrade), crush"]
+}

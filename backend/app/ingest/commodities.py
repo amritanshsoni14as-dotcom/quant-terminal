@@ -25,6 +25,8 @@ SEED = [
     ("COPPER", "Copper", "HG=F", "metal", "USD", "per lb", "COMEX"),
     ("CRUDE", "Crude Oil (WTI)", "CL=F", "energy", "USD", "per barrel", "NYMEX"),
     ("NATGAS", "Natural Gas", "NG=F", "energy", "USD", "per MMBtu", "NYMEX"),
+    ("WHEAT", "Wheat (CBOT SRW)", "ZW=F", "agriculture", "USD", "cents/bu", "CBOT"),
+    ("SOYBEAN", "Soybeans (CBOT)", "ZS=F", "agriculture", "USD", "cents/bu", "CBOT"),
     ("ELECTRICITY", "Electricity", None, "energy", "INR", "per MWh", "IEX/MCX"),
 ]
 
