@@ -60,6 +60,32 @@ def admin_seed(full: bool = Query(False)):
     return {"status": "started", "mode": "full" if full else "incremental"}
 
 
+@router.post("/admin/train-ml")
+def admin_train_ml():
+    """Trigger ML lab training + champion forecasts."""
+    global _running
+    if _running:
+        return {"status": "already_running"}
+
+    def _do():
+        global _running, _last_error, _last_result
+        _running = True
+        _last_error = None
+        _last_result = None
+        try:
+            from app.ml.run import run as run_ml
+            run_ml()
+            _last_result = "ML training complete"
+        except Exception as exc:
+            _last_error = f"{exc}\n{traceback.format_exc()}"
+            print(f"[admin/train-ml] failed: {_last_error}")
+        finally:
+            _running = False
+
+    threading.Thread(target=_do, daemon=True).start()
+    return {"status": "started"}
+
+
 @router.post("/admin/refresh")
 def admin_refresh():
     """Trigger a light refresh (recent weather + drivers + signals)."""
