@@ -28,6 +28,9 @@ def _champion(db: Session, horizon: str) -> str:
 
 def predict(db: Session) -> list[dict]:
     ds = datasets.build(db)
+    # Release the implicit transaction from the dataset SELECT before the
+    # per-horizon model fits (Neon idle-in-transaction safety).
+    db.rollback()
     if ds is None:
         return []
     issued = ds.dates[-1]

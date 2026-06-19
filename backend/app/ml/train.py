@@ -61,6 +61,10 @@ def _eval_prophet(ds: Dataset, valid_idx: np.ndarray, h: int, y: np.ndarray, ref
 
 def train(db: Session) -> list[dict]:
     ds = datasets.build(db)
+    # Release the implicit transaction held by the SELECT so Neon's
+    # idle-in-transaction timeout doesn't kill us during the multi-minute
+    # ML loops below (we don't touch the DB again until the final write).
+    db.rollback()
     if ds is None:
         print("[ml] not enough data.")
         return []

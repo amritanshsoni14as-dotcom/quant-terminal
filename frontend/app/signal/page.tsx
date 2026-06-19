@@ -19,7 +19,7 @@ export default async function SignalPage() {
   const [signal, brief, history] = await Promise.all([
     api.signal(),
     api.brief(),
-    api.signalHistory(100),
+    api.signalHistory(5000),
   ]);
 
   if (!signal?.available) {

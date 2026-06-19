@@ -27,25 +27,38 @@ def signal(db: Session = Depends(get_db)):
 
 
 @router.get("/signal/history")
-def signal_history(limit: int = Query(100, ge=1, le=500), db: Session = Depends(get_db)):
-    """Append-only journal of every signal change the model has made."""
+def signal_history(limit: int = Query(2000, ge=1, le=20000), db: Session = Depends(get_db)):
+    """Full track record — every daily signal the model has produced from inception.
+
+    Reads the persisted `trading_signals` table (one row per as_of date) so the
+    journal stays complete even if the in-process SignalLog is empty after a
+    fresh deploy. `prev_signal` and `event_type` are computed on the fly so the
+    UI shows every state transition.
+    """
     rows = db.execute(
-        select(SignalLog).where(SignalLog.symbol == SYMBOL)
-        .order_by(SignalLog.logged_at.desc()).limit(limit)
+        select(TradingSignal).where(TradingSignal.symbol == SYMBOL)
+        .order_by(TradingSignal.as_of.asc())
     ).scalars().all()
-    return {
-        "available": True,
-        "count": len(rows),
-        "entries": [{
-            "logged_at": r.logged_at.isoformat() if r.logged_at else None,
+
+    entries = []
+    prev = None
+    for r in rows:
+        event = "first" if prev is None else ("change" if r.signal != prev else "same")
+        entries.append({
+            "logged_at": r.as_of.isoformat(),
             "as_of": r.as_of.isoformat(),
             "signal": r.signal,
-            "prev_signal": r.prev_signal,
+            "prev_signal": prev,
             "score": r.score,
             "confidence": r.confidence,
-            "event_type": r.event_type,
-        } for r in rows],
-    }
+            "event_type": event,
+        })
+        prev = r.signal
+
+    entries.reverse()  # newest first for the UI
+    if limit < len(entries):
+        entries = entries[:limit]
+    return {"available": True, "count": len(entries), "entries": entries}
 
 
 @router.get("/brief")

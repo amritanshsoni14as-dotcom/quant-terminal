@@ -72,8 +72,10 @@ def compute() -> dict:
     f_press = _clamp((1008.0 - (min(press24, default=1008))) / 15.0 * 100)
     storm_score = _clamp(0.45 * f_precip + 0.35 * f_wind + 0.20 * f_press)
 
-    # Imagery date: yesterday (true-colour is reliably processed by then).
+    # Imagery date: yesterday for VIIRS true-colour, 2 days back for IMERG
+    # (the late-run IMERG product is reliably gap-free by t-48h).
     img_day = (datetime.utcnow() - timedelta(days=1)).strftime("%Y-%m-%d")
+    imerg_day = (datetime.utcnow() - timedelta(days=2)).strftime("%Y-%m-%d")
 
     images = [
         {
@@ -83,9 +85,11 @@ def compute() -> dict:
         },
         {
             "title": "Precipitation over Mumbai region",
-            "subtitle": "GPM IMERG rain rate over true colour",
-            "url": _gibs_url("MODIS_Terra_CorrectedReflectance_TrueColor,IMERG_Precipitation_Rate",
-                             (13, 67, 23, 77), img_day, 640, 512),
+            "subtitle": "GPM IMERG rain rate over true colour (gap-filled VIIRS base)",
+            # VIIRS_SNPP is a gap-free daily composite at Indian latitudes — replaces
+            # MODIS_Terra which left a polar-orbit swath gap on the right side.
+            "url": _gibs_url("VIIRS_SNPP_CorrectedReflectance_TrueColor,IMERG_Precipitation_Rate",
+                             (13, 67, 23, 77), imerg_day, 640, 512),
         },
     ]
 
