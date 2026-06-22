@@ -4,15 +4,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Activity, Binoculars, Bot, BookOpen, BrainCircuit, CloudRain, Coins, FlaskConical,
-  Gauge, GitCompareArrows, LayoutGrid, LineChart, Newspaper, Satellite, Sigma, TrendingUp,
+  Gauge, GitCompareArrows, LineChart, Newspaper, Satellite, Sigma, TrendingUp,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ThemeToggle from "@/components/ThemeToggle";
-
-const COMMODITIES = [
-  { label: "Command Center", icon: Coins, href: "/markets" },
-  { label: "Portfolio Mode", icon: LayoutGrid, href: "/portfolio" },
-];
 
 const WEATHER = [
   { label: "Weather Command", icon: CloudRain, href: "/" },
@@ -58,18 +53,12 @@ export default function Sidebar() {
       <div className="px-4 h-14 flex items-center gap-2 border-b border-terminal-border">
         <Activity className="h-5 w-5 text-terminal-accent" />
         <div className="leading-tight">
-          <div className="text-sm font-bold text-terminal-text">QUANT TERMINAL</div>
-          <div className="text-[10px] uppercase tracking-widest text-terminal-muted">Commodities & Weather</div>
+          <div className="text-sm font-bold text-terminal-text">RAINMUMBAI TERMINAL</div>
+          <div className="text-[10px] uppercase tracking-widest text-terminal-muted">Weather Derivatives</div>
         </div>
       </div>
 
       <nav className="flex-1 overflow-y-auto py-1">
-        <SectionLabel>Commodities</SectionLabel>
-        {COMMODITIES.map((m) => (
-          <NavItem key={m.href} item={m}
-            active={pathname === m.href || (m.href === "/markets" && pathname.startsWith("/markets"))} />
-        ))}
-
         <SectionLabel>Weather · RAINMUMBAI</SectionLabel>
         <div className="px-4 pb-1.5 leading-tight">
           <div className="text-[9px] text-terminal-muted">Santacruz · 19.0896°N, 72.8656°E</div>
@@ -80,7 +69,7 @@ export default function Sidebar() {
       </nav>
 
       <div className="px-4 py-3 border-t border-terminal-border flex items-center justify-between gap-2">
-        <span className="text-[10px] text-terminal-muted">Multi-asset</span>
+        <span className="text-[10px] text-terminal-muted">NCDEX · RAINMUMBAI</span>
         <ThemeToggle />
       </div>
     </aside>

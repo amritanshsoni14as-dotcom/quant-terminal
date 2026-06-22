@@ -7,9 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api import (
     admin,
     ai,
-    commodities,
     derivative,
-    intel,
     meta,
     ml,
     monsoon,
@@ -46,8 +44,6 @@ def create_app() -> FastAPI:
     app.include_router(ml.router, prefix=api_v1)
     app.include_router(revision.router, prefix=api_v1)
     app.include_router(monsoon.router, prefix=api_v1)
-    app.include_router(commodities.router, prefix=api_v1)
-    app.include_router(intel.router, prefix=api_v1)
     app.include_router(ai.router, prefix=api_v1)
     app.include_router(admin.router, prefix=api_v1)
 

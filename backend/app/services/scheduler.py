@@ -11,9 +11,6 @@ import datetime as _dt
 from apscheduler.schedulers.background import BackgroundScheduler
 
 from app.services.refresh import (
-    commodity_refresh,
-    forecast_refresh,
-    fundamentals_refresh,
     light_refresh,
     ml_refresh,
 )
@@ -41,18 +38,6 @@ def start_scheduler() -> None:
     # Retrain ML lab daily.
     sched.add_job(lambda: _run(ml_refresh, "ml_refresh"), "interval",
                   hours=24, coalesce=True, max_instances=1, id="ml")
-    # Update commodity prices every 6h (Yahoo daily bars); first run ~40s after boot.
-    sched.add_job(lambda: _run(commodity_refresh, "commodity_refresh"), "interval",
-                  hours=6, coalesce=True, max_instances=1, id="commodities",
-                  next_run_time=_dt.datetime.now() + _dt.timedelta(seconds=40))
-    # Commodity fundamentals (CFTC COT free + EIA/FRED if keyed); first run ~60s after boot.
-    sched.add_job(lambda: _run(fundamentals_refresh, "fundamentals_refresh"), "interval",
-                  hours=12, coalesce=True, max_instances=1, id="fundamentals",
-                  next_run_time=_dt.datetime.now() + _dt.timedelta(seconds=60))
-    # Commodity forecasts (LightGBM); daily, first run ~90s after boot.
-    sched.add_job(lambda: _run(forecast_refresh, "forecast_refresh"), "interval",
-                  hours=24, coalesce=True, max_instances=1, id="cmdty_forecast",
-                  next_run_time=_dt.datetime.now() + _dt.timedelta(seconds=90))
     sched.start()
     _scheduler = sched
-    print("[scheduler] started (light=60min, ml=24h, commodities=6h, fundamentals=12h, forecast=24h)")
+    print("[scheduler] started (light=60min, ml=24h)")

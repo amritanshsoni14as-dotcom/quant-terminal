@@ -87,7 +87,7 @@ export interface SignalLogEntry {
   prev_signal: string | null;
   score: number | null;
   confidence: number | null;
-  event_type: "first" | "change";
+  event_type: "first" | "change" | "same";
 }
 export interface SignalHistory {
   available: boolean;
@@ -212,68 +212,6 @@ export interface AltData {
   headlines?: { title: string; url: string; published: string; query: string }[];
 }
 
-// ---- Commodities ----
-export interface CommodityItem {
-  symbol: string; name: string; asset_class: string; currency: string; unit: string; exchange: string; has_data: boolean;
-}
-export interface CommoditySummary {
-  available: boolean;
-  symbol?: string; name?: string; asset_class?: string; currency?: string; unit?: string; exchange?: string;
-  as_of?: string; price?: number;
-  change?: Record<string, number | null>;
-  high_52w?: number; low_52w?: number;
-  volatility_annual_pct?: number | null; atr_14?: number | null; rsi_14?: number | null;
-  sma_50?: number | null; sma_200?: number | null; trend?: string; n_days?: number;
-}
-export interface PricePoint { date: string; open: number | null; high: number | null; low: number | null; close: number | null; sma50: number | null; sma200: number | null; }
-export interface CommodityTechnicals {
-  available: boolean;
-  symbol?: string;
-  rsi_14?: number | null;
-  macd?: { macd: number; signal: number; hist: number };
-  bollinger?: { upper: number; mid: number; lower: number; price: number };
-  macd_series?: { date: string; macd: number; signal: number; hist: number }[];
-}
-
-// ---- Commodity Intelligence Platform ----
-export interface ScoreContributor { key: string; label: string; sub_score: number; weight: number; normalized: number; }
-export interface CategoryScore { category: string; score: number; contributors: ScoreContributor[]; }
-export interface IntelIndicator { key: string; label: string; category: string; direction: number; available: boolean; sub_score: number | null; }
-export interface Scorecard {
-  available: boolean;
-  symbol?: string; name?: string; category?: string; unit?: string; currency?: string;
-  as_of?: string; price?: number; change_1d?: number | null;
-  health?: number; composite?: number; verdict?: string;
-  trend_score?: number | null; risk_score?: number | null;
-  categories?: CategoryScore[];
-  covered_categories?: string[];
-  indicators?: IntelIndicator[];
-  secular?: Record<string, unknown> | null;
-  substitutes?: string[];
-  pending_phase2?: string[];
-}
-
-export interface ForecastHorizon {
-  horizon: string; point_return_pct: number; p_bull: number; p_bear: number; p_neutral: number;
-  expected_price: number;
-  drivers?: { top_features?: string[]; ml_return_pct?: number; fundamental_tilt?: number };
-}
-export interface CommodityForecastT { available: boolean; symbol?: string; as_of?: string; horizons?: ForecastHorizon[]; }
-
-export interface PortfolioRow {
-  symbol: string; name: string; category: string; price: number | null; unit?: string;
-  health: number; verdict: string; composite: number | null;
-  trend_score: number | null; risk_score: number | null;
-  change_1m: number | null; change_1y: number | null;
-  p_bull_21d: number | null; p_bear_21d: number | null; forecast_21d_pct: number | null;
-  opportunity: number; top_driver: string | null; substitutes: string[];
-}
-export interface Portfolio {
-  available: boolean;
-  summary?: { count: number; bullish: number; bearish: number; avg_health: number | null };
-  commodities?: PortfolioRow[];
-}
-
 export const api = {
   summary: () => get<Summary>("/weather/summary"),
   meta: () => get<Meta>("/meta"),
@@ -304,17 +242,6 @@ export const api = {
   aiStatus: () => get<AiStatus>("/ai/status"),
   copilotSuggested: () => get<CopilotSuggested>("/copilot/suggested"),
   altdata: () => get<AltData>("/altdata"),
-  // Commodities
-  commodities: () => get<{ commodities: CommodityItem[] }>("/commodities"),
-  commoditySummary: (s: string) => get<CommoditySummary>(`/commodities/${s}/summary`),
-  commodityPrices: (s: string, days = 260) => get<{ symbol: string; series: PricePoint[] }>(`/commodities/${s}/prices?days=${days}`),
-  commodityTechnicals: (s: string) => get<CommodityTechnicals>(`/commodities/${s}/technicals`),
-  // Intelligence platform
-  intelScorecard: (s: string) => get<Scorecard>(`/intel/${s}/scorecard`),
-  intelForecast: (s: string) => get<CommodityForecastT>(`/intel/${s}/forecast`),
-  commodityCopilotSuggested: (s: string) => get<{ suggested: string[] }>(`/intel/${s}/copilot/suggested`),
-  portfolio: () => get<Portfolio>("/intel/portfolio"),
-  intelCommodities: () => get<{ commodities: { symbol: string; name: string; category: string; health: number; verdict: string }[] }>("/intel/commodities"),
 };
 
 // Base used by Next route handlers to proxy interactive POSTs to the backend.
