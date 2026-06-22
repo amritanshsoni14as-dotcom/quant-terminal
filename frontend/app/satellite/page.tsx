@@ -5,7 +5,7 @@ import DailyBrief from "@/components/DailyBrief";
 import ModuleHeader from "@/components/ModuleHeader";
 import { SatelliteHourlyChart } from "@/components/charts6";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 function level(v: number) {
   return v >= 66 ? "High" : v >= 33 ? "Moderate" : "Low";

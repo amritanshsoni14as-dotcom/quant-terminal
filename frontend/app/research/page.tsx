@@ -5,7 +5,7 @@ import DailyBrief from "@/components/DailyBrief";
 import ModuleHeader from "@/components/ModuleHeader";
 import { CorrHeatmap, LeadLagChart, SeasonalityChart } from "@/components/charts5";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 export default async function ResearchPage() {
   const r = await api.research();

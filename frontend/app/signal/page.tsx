@@ -5,7 +5,7 @@ import DailyBrief from "@/components/DailyBrief";
 import ModuleHeader from "@/components/ModuleHeader";
 import SignalJournal from "@/components/SignalJournal";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 const TONE: Record<string, { text: string; bg: string }> = {
   STRONG_BUY: { text: "text-terminal-pos", bg: "bg-terminal-pos/15 border-terminal-pos/40" },

@@ -3,7 +3,10 @@ const BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://127.0.0.1:8000/api/v1";
 
 async function get<T>(path: string): Promise<T | null> {
   try {
-    const res = await fetch(`${BASE}${path}`, { cache: "no-store" });
+    // 60s ISR-aligned data cache: multiple pages share a single backend hit
+    // inside the window, and a stale render serves instantly while Vercel
+    // revalidates in the background.
+    const res = await fetch(`${BASE}${path}`, { next: { revalidate: 60 } });
     if (!res.ok) return null;
     return (await res.json()) as T;
   } catch {

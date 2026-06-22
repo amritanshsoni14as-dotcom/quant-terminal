@@ -2,7 +2,7 @@ import { api } from "@/lib/api";
 import ModuleHeader from "@/components/ModuleHeader";
 import CopilotChat from "@/components/CopilotChat";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 export default async function CopilotPage() {
   const s = await api.copilotSuggested();

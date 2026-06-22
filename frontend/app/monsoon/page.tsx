@@ -6,7 +6,7 @@ import ModuleHeader from "@/components/ModuleHeader";
 import { ImpactBars, MJOPhaseChart } from "@/components/charts4";
 import type { DriverPanel } from "@/lib/api";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 function stateTone(state?: string | null) {
   if (!state) return "text-terminal-text";

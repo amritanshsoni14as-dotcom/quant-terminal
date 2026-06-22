@@ -6,7 +6,7 @@ import ModuleHeader from "@/components/ModuleHeader";
 import StatCard from "@/components/StatCard";
 import { RevisionSeriesChart } from "@/components/charts3";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 export default async function RevisionPage() {
   const rev = await api.revision();
