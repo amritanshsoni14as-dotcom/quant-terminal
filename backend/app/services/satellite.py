@@ -27,8 +27,40 @@ def _gibs_url(layers: str, bbox: tuple[float, float, float, float], day: str, w=
             f"&TIME={day}&BBOX={s},{west},{n},{e}&FORMAT=image/jpeg&WIDTH={w}&HEIGHT={h}")
 
 
+def _gibs_images() -> list[dict]:
+    """NASA GIBS satellite snapshots — independent of any forecast source."""
+    img_day = (datetime.utcnow() - timedelta(days=1)).strftime("%Y-%m-%d")
+    imerg_day = (datetime.utcnow() - timedelta(days=2)).strftime("%Y-%m-%d")
+    return [
+        {
+            "title": "Cloud cover — Arabian Sea & Bay of Bengal (true colour)",
+            "subtitle": "VIIRS, monsoon systems & rain bands",
+            "url": _gibs_url("VIIRS_SNPP_CorrectedReflectance_TrueColor", (5, 60, 26, 95), img_day, 720, 512),
+        },
+        {
+            "title": "Precipitation over Mumbai region",
+            "subtitle": "GPM IMERG rain rate over true colour (gap-filled VIIRS base)",
+            # VIIRS_SNPP is a gap-free daily composite at Indian latitudes — replaces
+            # MODIS_Terra which left a polar-orbit swath gap on the right side.
+            "url": _gibs_url("VIIRS_SNPP_CorrectedReflectance_TrueColor,IMERG_Precipitation_Rate",
+                             (13, 67, 23, 77), imerg_day, 640, 512),
+        },
+    ]
+
+
 def compute() -> dict:
-    # Hourly forecast for the scores.
+    # NASA GIBS imagery is always returned — it's served by a separate API,
+    # so the panel still works even if Open-Meteo is rate-limited.
+    img_day = (datetime.utcnow() - timedelta(days=1)).strftime("%Y-%m-%d")
+    images = _gibs_images()
+    base = {
+        "available": True,
+        "imagery_date": img_day,
+        "location": {"name": settings.PRIMARY_NAME, "lat": LAT, "lon": LON},
+        "images": images,
+    }
+
+    # Hourly forecast for the scores (Open-Meteo) — optional enrichment.
     try:
         data = http_get_json(
             "https://api.open-meteo.com/v1/forecast",
@@ -39,11 +71,12 @@ def compute() -> dict:
             },
         )
     except Exception as exc:  # noqa: BLE001
-        return {"available": False, "reason": str(exc)}
+        # Imagery still ships; scores/series degrade gracefully.
+        base["scores_note"] = f"forecast unavailable ({exc})"
+        return base
 
     h = data.get("hourly", {})
     times = h.get("time", [])
-    # Index of "now" within the hourly series.
     now = datetime.now()
     start = 0
     for i, t in enumerate(times):
@@ -66,34 +99,11 @@ def compute() -> dict:
 
     cloud_score = _clamp(sum(cloud24) / len(cloud24)) if cloud24 else 0
     rain_score = _clamp(0.6 * max(prob24, default=0) + 0.4 * (sum(prob24) / len(prob24) if prob24 else 0))
-    # Storm risk: heavy precip + strong wind + low pressure.
     f_precip = _clamp(max(precip24, default=0) / 15.0 * 100)
     f_wind = _clamp(max(wind24, default=0) / 60.0 * 100)
     f_press = _clamp((1008.0 - (min(press24, default=1008))) / 15.0 * 100)
     storm_score = _clamp(0.45 * f_precip + 0.35 * f_wind + 0.20 * f_press)
 
-    # Imagery date: yesterday for VIIRS true-colour, 2 days back for IMERG
-    # (the late-run IMERG product is reliably gap-free by t-48h).
-    img_day = (datetime.utcnow() - timedelta(days=1)).strftime("%Y-%m-%d")
-    imerg_day = (datetime.utcnow() - timedelta(days=2)).strftime("%Y-%m-%d")
-
-    images = [
-        {
-            "title": "Cloud cover — Arabian Sea & Bay of Bengal (true colour)",
-            "subtitle": "VIIRS, monsoon systems & rain bands",
-            "url": _gibs_url("VIIRS_SNPP_CorrectedReflectance_TrueColor", (5, 60, 26, 95), img_day, 720, 512),
-        },
-        {
-            "title": "Precipitation over Mumbai region",
-            "subtitle": "GPM IMERG rain rate over true colour (gap-filled VIIRS base)",
-            # VIIRS_SNPP is a gap-free daily composite at Indian latitudes — replaces
-            # MODIS_Terra which left a polar-orbit swath gap on the right side.
-            "url": _gibs_url("VIIRS_SNPP_CorrectedReflectance_TrueColor,IMERG_Precipitation_Rate",
-                             (13, 67, 23, 77), imerg_day, 640, 512),
-        },
-    ]
-
-    # Compact hourly series (next 48h) for the chart.
     series = []
     for i in range(start, min(start + 48, len(times))):
         series.append({
@@ -104,21 +114,16 @@ def compute() -> dict:
             "precip": h.get("precipitation", [None] * len(times))[i],
         })
 
-    return {
-        "available": True,
-        "imagery_date": img_day,
-        "location": {"name": settings.PRIMARY_NAME, "lat": LAT, "lon": LON},
-        "scores": {
-            "cloud_intensity": round(cloud_score, 0),
-            "rain_probability": round(rain_score, 0),
-            "storm_risk": round(storm_score, 0),
-        },
-        "score_inputs": {
-            "max_rain_prob_24h": max(prob24, default=0),
-            "max_precip_mm_24h": round(max(precip24, default=0), 1),
-            "max_wind_kmh_24h": round(max(wind24, default=0), 0),
-            "min_pressure_hpa_24h": round(min(press24, default=0), 0),
-        },
-        "images": images,
-        "hourly": series,
+    base["scores"] = {
+        "cloud_intensity": round(cloud_score, 0),
+        "rain_probability": round(rain_score, 0),
+        "storm_risk": round(storm_score, 0),
     }
+    base["score_inputs"] = {
+        "max_rain_prob_24h": max(prob24, default=0),
+        "max_precip_mm_24h": round(max(precip24, default=0), 1),
+        "max_wind_kmh_24h": round(max(wind24, default=0), 0),
+        "min_pressure_hpa_24h": round(min(press24, default=0), 0),
+    }
+    base["hourly"] = series
+    return base
