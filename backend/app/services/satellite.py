@@ -2,19 +2,30 @@
 
 Two parts, both from free/no-key sources:
   1. Live satellite imagery via NASA GIBS snapshots (true-colour clouds over the
-     Arabian Sea / Bay of Bengal, and precipitation over Mumbai).
+     Arabian Sea / Bay of Bengal, and precipitation over Mumbai). Images are
+     validated against GIBS before use and the last-known-good set is persisted
+     so the panel survives a NASA outage.
   2. Three operational scores (0-100) derived transparently from the Open-Meteo
      hourly forecast: cloud intensity, rain probability, storm risk.
 """
 from __future__ import annotations
 
+import json
+import logging
 from datetime import datetime, timedelta
+from pathlib import Path
+
+import httpx
 
 from app.core.config import settings
 from app.ingest.base import http_get_json
 
 GIBS = "https://wvs.earthdata.nasa.gov/api/v1/snapshot"
 LAT, LON = settings.PRIMARY_LAT, settings.PRIMARY_LON
+
+_CACHE_DIR = Path(__file__).resolve().parents[2] / "data"
+_CACHE_FILE = _CACHE_DIR / "satellite_cache.json"
+_log = logging.getLogger(__name__)
 
 
 def _clamp(x: float, lo: float = 0.0, hi: float = 100.0) -> float:
@@ -27,35 +38,148 @@ def _gibs_url(layers: str, bbox: tuple[float, float, float, float], day: str, w=
             f"&TIME={day}&BBOX={s},{west},{n},{e}&FORMAT=image/jpeg&WIDTH={w}&HEIGHT={h}")
 
 
-def _gibs_images() -> list[dict]:
-    """NASA GIBS satellite snapshots — independent of any forecast source."""
-    img_day = (datetime.utcnow() - timedelta(days=1)).strftime("%Y-%m-%d")
-    imerg_day = (datetime.utcnow() - timedelta(days=2)).strftime("%Y-%m-%d")
-    return [
-        {
-            "title": "Cloud cover — Arabian Sea & Bay of Bengal (true colour)",
-            "subtitle": "VIIRS, monsoon systems & rain bands",
-            "url": _gibs_url("VIIRS_SNPP_CorrectedReflectance_TrueColor", (5, 60, 26, 95), img_day, 720, 512),
-        },
-        {
-            "title": "Precipitation over Mumbai region",
-            "subtitle": "GPM IMERG rain rate over true colour (gap-filled VIIRS base)",
-            # VIIRS_SNPP is a gap-free daily composite at Indian latitudes — replaces
-            # MODIS_Terra which left a polar-orbit swath gap on the right side.
-            "url": _gibs_url("VIIRS_SNPP_CorrectedReflectance_TrueColor,IMERG_Precipitation_Rate",
-                             (13, 67, 23, 77), imerg_day, 640, 512),
-        },
-    ]
+def _read_cache() -> dict | None:
+    try:
+        if _CACHE_FILE.exists():
+            return json.loads(_CACHE_FILE.read_text(encoding="utf-8"))
+    except Exception as exc:  # noqa: BLE001
+        _log.warning("satellite cache read failed: %s", exc)
+    return None
+
+
+def _write_cache(payload: dict) -> None:
+    try:
+        _CACHE_DIR.mkdir(parents=True, exist_ok=True)
+        _CACHE_FILE.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    except Exception as exc:  # noqa: BLE001
+        _log.warning("satellite cache write failed: %s", exc)
+
+
+def _verify_url(url: str, timeout: int = 8) -> bool:
+    """Confirm GIBS will actually serve image bytes for this URL.
+
+    HEAD is unreliable for GIBS, so we issue a GET with a Range header to fetch
+    just the first 256 bytes — enough to confirm a 200 + image content-type.
+    """
+    try:
+        with httpx.Client(timeout=timeout, follow_redirects=True) as client:
+            resp = client.get(url, headers={"Range": "bytes=0-255"})
+            if resp.status_code not in (200, 206):
+                return False
+            ct = resp.headers.get("content-type", "").lower()
+            return "image" in ct
+    except Exception:
+        return False
+
+
+def _build_layer_image(title: str, subtitle: str, layers: str,
+                       bbox: tuple[float, float, float, float],
+                       preferred_day: str, w: int, h: int,
+                       max_lookback_days: int = 6) -> tuple[dict, bool]:
+    """Build one image dict, walking back day-by-day if GIBS refuses today's tile.
+
+    Returns (image_dict, verified). `verified=True` means we confirmed the URL
+    serves valid imagery; `False` means we couldn't reach GIBS at all and the
+    URL is best-effort.
+    """
+    day_dt = datetime.strptime(preferred_day, "%Y-%m-%d")
+    for offset in range(max_lookback_days + 1):
+        day = (day_dt - timedelta(days=offset)).strftime("%Y-%m-%d")
+        url = _gibs_url(layers, bbox, day, w, h)
+        if _verify_url(url):
+            return ({
+                "title": title,
+                "subtitle": subtitle + (f" · {day} (t-{offset}d)" if offset else f" · {day}"),
+                "url": url,
+            }, True)
+    # All attempts failed — return best-effort today URL, caller may swap to cache.
+    return ({
+        "title": title,
+        "subtitle": subtitle + f" · {preferred_day} (unverified)",
+        "url": _gibs_url(layers, bbox, preferred_day, w, h),
+    }, False)
+
+
+_LAYER_SPECS = [
+    {
+        "key": "viirs_cloud",
+        "title": "Cloud cover — Arabian Sea & Bay of Bengal (true colour)",
+        "subtitle": "VIIRS, monsoon systems & rain bands",
+        "layers": "VIIRS_SNPP_CorrectedReflectance_TrueColor",
+        "bbox": (5, 60, 26, 95),
+        "w": 720, "h": 512,
+        "preferred_offset": 1,
+    },
+    {
+        "key": "imerg_precip",
+        "title": "Precipitation over Mumbai region",
+        "subtitle": "GPM IMERG rain rate over true colour (gap-filled VIIRS base)",
+        # VIIRS_SNPP is a gap-free daily composite at Indian latitudes — replaces
+        # MODIS_Terra which left a polar-orbit swath gap on the right side.
+        "layers": "VIIRS_SNPP_CorrectedReflectance_TrueColor,IMERG_Precipitation_Rate",
+        "bbox": (13, 67, 23, 77),
+        "w": 640, "h": 512,
+        "preferred_offset": 2,
+    },
+]
+
+
+def _build_validated_images() -> tuple[list[dict], bool]:
+    """Build today's images, verifying each against GIBS.
+
+    Returns (images, all_verified). When `all_verified` is False the caller
+    should consider falling back to the persisted last-known-good set.
+    """
+    today = datetime.utcnow()
+    images = []
+    all_ok = True
+    for spec in _LAYER_SPECS:
+        preferred = (today - timedelta(days=spec["preferred_offset"])).strftime("%Y-%m-%d")
+        img, ok = _build_layer_image(
+            spec["title"], spec["subtitle"], spec["layers"], spec["bbox"],
+            preferred, spec["w"], spec["h"],
+        )
+        img["key"] = spec["key"]
+        images.append(img)
+        all_ok = all_ok and ok
+    return images, all_ok
+
+
+def _gibs_images() -> tuple[list[dict], str]:
+    """Return (images, freshness) — fresh if GIBS verifies, cached otherwise.
+
+    On verified fetch the result is persisted so a later NASA outage falls
+    back to the last imagery that actually rendered.
+    """
+    images, ok = _build_validated_images()
+    cache = _read_cache() or {}
+    if ok:
+        payload = {
+            "images": images,
+            "saved_at": datetime.utcnow().isoformat() + "Z",
+        }
+        _write_cache(payload)
+        return images, "live"
+    cached = cache.get("images")
+    if cached:
+        # Annotate cached subtitles so the user sees this is the last-known-good set.
+        saved = cache.get("saved_at", "earlier")
+        for c in cached:
+            if "(cached" not in c.get("subtitle", ""):
+                c["subtitle"] = f"{c.get('subtitle', '')} · (cached from {saved[:10]})"
+        return cached, "cached"
+    return images, "unverified"
 
 
 def compute() -> dict:
     # NASA GIBS imagery is always returned — it's served by a separate API,
     # so the panel still works even if Open-Meteo is rate-limited.
     img_day = (datetime.utcnow() - timedelta(days=1)).strftime("%Y-%m-%d")
-    images = _gibs_images()
+    images, freshness = _gibs_images()
     base = {
         "available": True,
         "imagery_date": img_day,
+        "imagery_freshness": freshness,  # "live" | "cached" | "unverified"
         "location": {"name": settings.PRIMARY_NAME, "lat": LAT, "lon": LON},
         "images": images,
     }
