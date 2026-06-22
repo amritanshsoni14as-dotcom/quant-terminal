@@ -31,7 +31,10 @@ function ScoreCard({ label, value, hint, text, bar }: { label: string; value: nu
 
 export default async function SatellitePage() {
   const s = await api.satellite();
-  if (!s?.available || !s.scores) {
+  // Only fully bail if the response itself is missing. Imagery and scores are
+  // independent: NASA GIBS may be up while Open-Meteo is rate-limited, or
+  // vice versa — render whichever pieces actually came back.
+  if (!s?.available) {
     return (
       <div>
         <ModuleHeader title="Satellite Intelligence" subtitle="Module 4" />
@@ -39,7 +42,9 @@ export default async function SatellitePage() {
       </div>
     );
   }
-  const si = s.score_inputs!;
+  const si = s.score_inputs;
+  const hasScores = !!s.scores;
+  const hasImagery = !!(s.images && s.images.length);
 
   return (
     <div>
@@ -47,36 +52,47 @@ export default async function SatellitePage() {
       <DailyBrief />
 
       <div className="p-5 space-y-5">
-        {/* Scores */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <ScoreCard label="Cloud Intensity" value={s.scores.cloud_intensity}
-            text="text-terminal-accent" bar="bg-terminal-accent" hint={`Mean cloud cover next 24h`} />
-          <ScoreCard label="Rain Probability" value={s.scores.rain_probability}
-            text="text-terminal-rain" bar="bg-terminal-rain" hint={`Peak ${si.max_rain_prob_24h}% · up to ${si.max_precip_mm_24h}mm/h`} />
-          <ScoreCard label="Storm Risk" value={s.scores.storm_risk}
-            text="text-terminal-warn" bar="bg-terminal-warn" hint={`Wind ${fmt(si.max_wind_kmh_24h, 0)}km/h · min pressure ${fmt(si.min_pressure_hpa_24h, 0)}hPa`} />
-        </div>
+        {/* Scores — only when Open-Meteo succeeded */}
+        {hasScores && si && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <ScoreCard label="Cloud Intensity" value={s.scores!.cloud_intensity}
+              text="text-terminal-accent" bar="bg-terminal-accent" hint={`Mean cloud cover next 24h`} />
+            <ScoreCard label="Rain Probability" value={s.scores!.rain_probability}
+              text="text-terminal-rain" bar="bg-terminal-rain" hint={`Peak ${si.max_rain_prob_24h}% · up to ${si.max_precip_mm_24h}mm/h`} />
+            <ScoreCard label="Storm Risk" value={s.scores!.storm_risk}
+              text="text-terminal-warn" bar="bg-terminal-warn" hint={`Wind ${fmt(si.max_wind_kmh_24h, 0)}km/h · min pressure ${fmt(si.min_pressure_hpa_24h, 0)}hPa`} />
+          </div>
+        )}
+        {!hasScores && (
+          <div className="text-[11px] text-terminal-muted border border-terminal-border/60 rounded-md px-3 py-2">
+            Forecast scores temporarily unavailable (Open-Meteo rate-limited). NASA imagery is still live below.
+          </div>
+        )}
 
-        {/* Imagery */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {(s.images ?? []).map((img) => (
-            <Card key={img.title}>
-              <CardHeader><CardTitle>{img.title}</CardTitle></CardHeader>
-              <CardContent>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={img.url} alt={img.title} loading="lazy"
-                     className="w-full rounded-lg border border-terminal-border bg-terminal-bg" />
-                <p className="mt-1.5 text-[11px] text-terminal-muted">{img.subtitle} · NASA GIBS · {s.imagery_date}</p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        {/* Imagery — always render if any image came back */}
+        {hasImagery && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {s.images!.map((img) => (
+              <Card key={img.title}>
+                <CardHeader><CardTitle>{img.title}</CardTitle></CardHeader>
+                <CardContent>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={img.url} alt={img.title} loading="lazy"
+                       className="w-full rounded-lg border border-terminal-border bg-terminal-bg" />
+                  <p className="mt-1.5 text-[11px] text-terminal-muted">{img.subtitle} · NASA GIBS · {s.imagery_date}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
 
-        {/* Hourly outlook */}
-        <Card>
-          <CardHeader><CardTitle>48-hour cloud / rain outlook</CardTitle></CardHeader>
-          <CardContent>{s.hourly?.length ? <SatelliteHourlyChart data={s.hourly} /> : null}</CardContent>
-        </Card>
+        {/* Hourly outlook — only when forecast was available */}
+        {s.hourly?.length ? (
+          <Card>
+            <CardHeader><CardTitle>48-hour cloud / rain outlook</CardTitle></CardHeader>
+            <CardContent><SatelliteHourlyChart data={s.hourly} /></CardContent>
+          </Card>
+        ) : null}
 
         <p className="text-[11px] text-terminal-muted max-w-3xl">
           Imagery is live NASA GIBS (VIIRS true colour + GPM IMERG precipitation) over the Arabian Sea, India and
