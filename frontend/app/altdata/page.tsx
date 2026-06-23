@@ -5,7 +5,7 @@ import DailyBrief from "@/components/DailyBrief";
 import ModuleHeader from "@/components/ModuleHeader";
 import RefreshButton from "@/components/RefreshButton";
 
-export const revalidate = 60;
+export const revalidate = 600;
 
 function FactorList({ items, tone }: { items: string[]; tone: string }) {
   if (!items.length) return <div className="text-terminal-muted text-xs">None identified.</div>;

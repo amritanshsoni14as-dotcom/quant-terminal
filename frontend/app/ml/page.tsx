@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import DailyBrief from "@/components/DailyBrief";
 import ModuleHeader from "@/components/ModuleHeader";
 
-export const revalidate = 60;
+export const revalidate = 600;
 
 const MODEL_LABEL: Record<string, string> = {
   linreg: "Linear Reg", random_forest: "Random Forest", xgboost: "XGBoost",

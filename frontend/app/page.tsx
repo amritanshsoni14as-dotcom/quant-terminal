@@ -5,7 +5,7 @@ import StatCard from "@/components/StatCard";
 import DailyBrief from "@/components/DailyBrief";
 import { CumulativeChart, DailyRainChart, MonthlyChart, WeeklyChart } from "@/components/charts";
 
-export const revalidate = 60;
+export const revalidate = 600;
 
 export default async function Page() {
   const [summary, meta, daily, weekly, monthly, cumulative] = await Promise.all([

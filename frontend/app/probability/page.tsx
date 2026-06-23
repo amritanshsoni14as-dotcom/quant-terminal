@@ -6,7 +6,7 @@ import ModuleHeader from "@/components/ModuleHeader";
 import StatCard from "@/components/StatCard";
 import { ProbabilityDistChart } from "@/components/charts2";
 
-export const revalidate = 60;
+export const revalidate = 600;
 
 const BARS: { key: string; label: string; tone: string }[] = [
   { key: "above_normal", label: "P(Above Normal)", tone: "bg-terminal-pos" },

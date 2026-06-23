@@ -5,7 +5,7 @@ import DailyBrief from "@/components/DailyBrief";
 import ModuleHeader from "@/components/ModuleHeader";
 import { ScenarioChart } from "@/components/charts4";
 
-export const revalidate = 60;
+export const revalidate = 600;
 
 export default async function ScenariosPage() {
   const s = await api.scenarios();

@@ -35,7 +35,7 @@ export default async function DailyBrief() {
         </span>
         <span className="uppercase tracking-wider text-terminal-pos font-semibold">Live</span>
         <span className="text-terminal-muted">
-          data as of <span className="text-terminal-text">{summary?.as_of ?? "—"}</span> · auto-refresh 3 min
+          data as of <span className="text-terminal-text">{summary?.as_of ?? "—"}</span> · refreshes hourly
         </span>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-px bg-terminal-border border-y border-terminal-border">
