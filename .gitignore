@@ -16,6 +16,12 @@ frontend/.next/
 frontend/out/
 .vercel/
 
+# Cloudflare / OpenNext build output + local dev vars
+frontend/.open-next/
+frontend/.wrangler/
+frontend/.dev.vars
+frontend/cloudflare-env.d.ts
+
 # Secrets & env
 .env
 .env.*
