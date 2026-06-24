@@ -6,7 +6,14 @@ async function get<T>(path: string): Promise<T | null> {
     // 10-min data cache. The backend's light_refresh job only updates data
     // hourly, so a sub-minute window just burns Vercel function invocations
     // and Render bandwidth for no fresher data.
-    const res = await fetch(`${BASE}${path}`, { next: { revalidate: 600 } });
+    //
+    // 5-second timeout so a hibernated/crashed backend never stalls the
+    // Cloudflare Worker build (each ISR page pre-renders at deploy time;
+    // without this, one slow endpoint took the whole build down).
+    const res = await fetch(`${BASE}${path}`, {
+      next: { revalidate: 600 },
+      signal: AbortSignal.timeout(5000),
+    });
     if (!res.ok) return null;
     return (await res.json()) as T;
   } catch {
